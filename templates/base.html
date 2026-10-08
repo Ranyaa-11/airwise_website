@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07111d">
+  <meta name="description" content="AIRWISE brings live air quality monitoring, AQI projections and policy insights for Karnataka districts together in one environmental intelligence platform.">
+  <title>AIRWISE — {% block title %}Environmental Intelligence{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body data-page="{{ page }}">
+  <header class="site-header">
+    <nav class="navbar" aria-label="Main navigation">
+      <a class="brand" href="/" aria-label="AIRWISE home">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>AIRWISE<span class="brand-period">.</span><small>ENVIRONMENTAL INTELLIGENCE</small></span>
+      </a>
+      <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="primaryNav" aria-label="Open navigation">
+        <span></span><span></span>
+      </button>
+      <div class="links" id="primaryNav">
+        <a href="/" class="{{ 'active' if page=='home' }}">Overview</a>
+        <a href="/monitoring" class="{{ 'active' if page=='monitoring' }}">Monitoring</a>
+        <a href="/prediction" class="{{ 'active' if page=='prediction' }}">Predictions</a>
+        <a href="/insights" class="{{ 'active' if page=='insights' }}">Insights</a>
+        <a href="/policy" class="{{ 'active' if page=='policy' }}">Policy analysis</a>
+      </div>
+      <a class="nav-cta" href="/monitoring">Monitoring dashboard <span aria-hidden="true">↗</span></a>
+    </nav>
+  </header>
+
+  <main class="container">{% block content %}{% endblock %}</main>
+
+  <footer class="footer">
+    <a class="brand footer-brand" href="/">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <span>AIRWISE<span class="brand-period">.</span><small>ENVIRONMENTAL INTELLIGENCE</small></span>
+    </a>
+    <p>Clearer air starts with clearer information.</p>
+    <div class="footer-links"><a href="/monitoring">Monitoring</a><a href="/prediction">Predictions</a><a href="/insights">Insights</a><a href="/policy">Policy analysis</a></div>
+    <span class="footer-note">Karnataka air quality · CPCB AQI methodology · Estimates are informational, not official station readings.</span>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  {% block scripts %}{% endblock %}
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

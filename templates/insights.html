@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Insights{% endblock %}
+{% block content %}
+<h1 class="page-title">Insights Hub</h1>
+<p class="page-sub">Elevated pollutant indicators and scenario simulation for AIRWISE cities; pollutant measurements alone cannot identify their emission sources.</p>
+
+<div class="card narrow-select">
+  <h3>Select City</h3>
+  <select id="citySelect">{% for c in cities %}<option value="{{ c }}" {{ 'selected' if c=='Bengaluru' }}>{{ c }}</option>{% endfor %}</select>
+</div>
+
+<div id="insightTabs">
+  <div id="sourceTab" class="tab-panel">
+    <div id="sourcesBody" class="card"></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}{% endblock %}

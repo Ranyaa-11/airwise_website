@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Policy Analysis{% endblock %}
+{% block content %}
+<h1 class="page-title">Policy Analysis</h1>
+<p class="page-sub">Evaluate whether a pollution policy appears to improve pollutant levels in a selected Karnataka city.</p>
+
+<div class="policy-shell">
+  <div class="policy-card settings-card">
+    <div class="section-label">ANALYSIS SETTINGS</div>
+    <h2>Select Analysis Criteria</h2>
+
+    <div class="selection-grid">
+      <div class="field-box">
+        <label>Select City</label>
+        <select id="policyCitySelect">
+          <option value="">Select City/District</option>
+          {% for c in cities %}<option value="{{ c }}" {{ 'selected' if c=='Bengaluru' }}>{{ c }}</option>{% endfor %}
+        </select>
+      </div>
+
+      <div class="field-box">
+        <label>Select Policy</label>
+        <select id="policyPolicySelect" disabled>
+          <option value="">Select Policy</option>
+        </select>
+      </div>
+
+      <div class="field-box">
+        <label>Analysis Window</label>
+        <select id="policyWindowSelect">
+          <option value="1">1 month</option>
+          <option value="3" selected>3 months</option>
+          <option value="6">6 months</option>
+        </select>
+      </div>
+
+      <div class="field-box">
+        <label>Affected Pollutants</label>
+        <div id="policyPollutants" class="readout muted">Affected pollutants will appear here after a policy is selected.</div>
+      </div>
+    </div>
+
+    <button id="policyAnalyzeBtn" class="btn analyze-btn">Analyze Policy</button>
+  </div>
+
+  <div class="policy-card summary-card">
+    <div class="section-label">POLICY SUMMARY</div>
+    <h2>Analysis Overview</h2>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <span>City</span>
+        <strong id="summaryCity">-</strong>
+      </div>
+      <div class="stat-box">
+        <span>Policy</span>
+        <strong id="summaryPolicy">-</strong>
+      </div>
+      <div class="stat-box">
+        <span>Impacted Pollutants</span>
+        <strong id="summaryPollutants">-</strong>
+      </div>
+      <div class="stat-box">
+        <span>Overall Impact</span>
+        <strong id="summaryImpact">-</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="policy-card impact-card">
+    <div class="section-label">POLICY IMPACT</div>
+    <h2>Analysis Summary</h2>
+    <div id="policySummary" class="policy-summary-content"></div>
+  </div>
+
+  <div class="policy-card visual-card">
+    <div class="section-label">VISUAL ANALYSIS</div>
+    <h2>Before vs After Comparison</h2>
+    <div class="chart-wrap">
+      <canvas id="policyChart"></canvas>
+    </div>
+  </div>
+
+  <div class="policy-card insights-card">
+    <div class="section-label">KEY INSIGHTS</div>
+    <h2>Policy Findings</h2>
+    <ul id="policyInsights" class="policy-insights"></ul>
+    <div class="recommendation-box">
+      <h3>Recommendation</h3>
+      <p id="policyRecommendation"></p>
+    </div>
+  </div>
+</div>
+{% endblock %}

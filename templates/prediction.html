@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Prediction{% endblock %}
+{% block content %}
+<section class="dashboard-page prediction-page">
+  <div class="dashboard-heading">
+    <span class="eyebrow">Karnataka · machine-learning outlook</span>
+    <h1 class="page-title">AQI prediction</h1>
+    <p class="page-sub">Daily CPCB AQI projections generated with the notebook’s XGBoost model and historical district data. These are model outputs, not measured or official forecasts.</p>
+  </div>
+
+  <div class="card controls dashboard-controls">
+    <div><label for="citySelect">District</label>
+      <select id="citySelect">{% for c in cities %}<option value="{{ c }}" {{ 'selected' if c=='Bengaluru' }}>{{ c }}</option>{% endfor %}</select></div>
+    <div><label for="daysSelect">Forecast horizon</label>
+      <select id="daysSelect"><option>1</option><option>3</option><option>5</option><option selected>7</option><option>10</option><option>14</option></select></div>
+    <button id="forecastBtn" class="btn" type="button">Generate forecast</button>
+  </div>
+
+  <div id="basisBox"></div>
+  <div id="forecastError"></div>
+
+  <section class="card forecast-card" id="forecastCard" hidden>
+    <div class="row-between forecast-heading">
+      <div><span class="eyebrow">XGBoost · recursive forecast</span><h2>Daily AQI outlook</h2></div>
+      <span class="tag">Forecast · not measured</span>
+    </div>
+    <p id="modelNote" class="small muted"></p>
+    <div class="table-wrap"><table class="tbl" id="forecastTable">
+      <thead><tr><th>Date</th><th>Day</th><th>Predicted AQI</th><th>Category</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <section class="card model-method">
+    <span class="eyebrow">How the notebook forecast works</span>
+    <h2>One day at a time</h2>
+    <p>The forecast begins on the day after the latest historical record. The model uses the notebook’s latest pollutant inputs; each predicted AQI is then added to the history used for the next forecast day. This is a model scenario, not a weather-aware forecast.</p>
+  </section>
+
+  <section class="card comparison-card">
+    <div class="row-between">
+      <div><span class="eyebrow">Current conditions · all districts</span><h2>Same-day model comparison</h2></div>
+      <button id="compareBtn" class="btn btn-secondary" type="button">Compare districts</button>
+    </div>
+    <p id="compareSummary" class="small muted"></p>
+    <div class="table-wrap"><table class="tbl" id="compareTable" hidden>
+      <thead><tr><th>District</th><th>Model AQI<br>from current-hour pollutants</th><th>Corrected estimate<br>at the same time</th><th>Difference<br>(not forecast error)</th><th>Largest sub-index</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+    <p id="compareNote" class="small muted"></p>
+  </section>
+</section>
+{% endblock %}

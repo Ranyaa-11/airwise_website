@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Monitoring{% endblock %}
+{% block content %}
+<section class="dashboard-page monitoring-page">
+  <div class="dashboard-heading">
+    <span class="eyebrow">Karnataka · real-time monitoring</span>
+    <h1 class="page-title">Air quality monitoring</h1>
+    <p class="page-sub">Current CPCBCCR model estimates, reported pollutant concentrations and recent measured station history. A model estimate is not an official station reading.</p>
+  </div>
+
+  <div class="card controls dashboard-controls">
+    <div><label for="citySelect">District</label>
+      <select id="citySelect">{% for c in cities %}<option value="{{ c }}" {{ 'selected' if c=='Bengaluru' }}>{{ c }}</option>{% endfor %}</select></div>
+    <button id="refreshBtn" class="btn" type="button">Refresh data</button>
+    <span class="small muted">Updates automatically every 10 minutes</span>
+  </div>
+
+  <div id="dataAgeWarning" aria-live="polite"></div>
+  <div id="alertBox" aria-live="polite"></div>
+
+  <div class="monitoring-hero">
+    <article class="card primary-aqi-card">
+      <div class="row-between">
+        <div><span class="eyebrow">Current conditions</span><h2>Model estimate</h2></div>
+        <span class="tag">CPCBCCR · not an official reading</span>
+      </div>
+      <div class="aqi-row">
+        <div id="aqiValue" class="aqi-num">--</div>
+        <div><div id="aqiCategory" class="aqi-cat">Loading…</div><div id="healthText" class="small muted"></div></div>
+      </div>
+      <div id="aqiBar" class="aqi-bar"></div>
+      <p id="dominantText" class="small">AQI is calculated when at least three pollutants, including PM2.5 or PM10, are available.</p>
+      <p id="aqiSourceLabel" class="small muted">CPCBCCR model estimate</p>
+      <p id="estimateFreshness" class="small muted">Data age: --</p>
+      <p id="metaText" class="small muted"></p>
+    </article>
+
+    <article class="card station-comparison-card">
+      <div class="row-between">
+        <div><span class="eyebrow">Historical comparison</span><h2>Measured station AQI</h2></div>
+        <span class="tag">Station workbook</span>
+      </div>
+      <div class="aqi-row">
+        <div id="stationAqiValue" class="aqi-num">--</div>
+        <div><div id="stationAqiCategory" class="aqi-cat">Loading station data…</div><div class="small muted">Most recent measured daily record</div></div>
+      </div>
+      <p id="stationDataAge" class="small muted">Data age: --</p>
+      <p id="stationOutlierNote" class="small muted"></p>
+      <h3 id="stationPollutantsTitle" class="subsection-title">Measured station pollutants</h3>
+      <div id="stationPollutants" class="pollutants station-pollutant-grid"></div>
+    </article>
+  </div>
+
+  <section class="card pollutant-section">
+    <div class="row-between">
+      <div><span class="eyebrow">Current model inputs</span><h2>Pollutant concentrations</h2></div>
+      <span class="tag">CPCB sub-indices</span>
+    </div>
+    <div id="pollutantGrid" class="pollutants"></div>
+  </section>
+
+  <section class="card chart-section">
+    <div class="row-between"><div><span class="eyebrow">Model activity</span><h2>CPCBCCR estimates recorded by AIRWISE</h2></div><span class="tag">Last 48 hours</span></div>
+    <canvas id="liveChart" height="110"></canvas>
+    <p id="liveNote" class="small muted"></p>
+  </section>
+</section>
+{% endblock %}
