@@ -158,7 +158,7 @@ class DataService:
         self._daily = None
         self._source_mtimes = None
         self._source_check_at = None
-        self._reload_from_sources = True
+        self._reload_from_sources = False
 
     def _check_excel_changes_locked(self):
         now = time.monotonic()
