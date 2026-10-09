@@ -3,7 +3,7 @@ services:
     name: airwise
     runtime: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python prepare_data.py
     startCommand: gunicorn app:app
     healthCheckPath: /api/health
     autoDeploy: true
