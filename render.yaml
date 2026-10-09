@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: airwise
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: FLASK_DEBUG
+        value: "0"
+      - key: SENSOR_API_KEY
+        generateValue: true
