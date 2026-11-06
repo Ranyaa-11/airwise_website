@@ -15,6 +15,15 @@ from .monitoring_service import monitoring_service
 
 FILES = {"policy": "Policy.xlsx", "district_policy": "DistrictPolicy.xlsx", "district_data": "Disdata.xlsx"}
 MAX_ROWS = 500
+MIN_POLLUTANT_BASELINES = {
+    "PM2.5": 5.0,
+    "PM10": 10.0,
+    "NO2": 5.0,
+    "SO2": 5.0,
+    "CO": 0.1,
+    "OZONE": 5.0,
+}
+COMPARISON_MODES = {"immediate": "Immediately before vs after", "same-season-previous-year": "Same season previous year"}
 
 
 class PolicyService:
@@ -231,12 +240,22 @@ class PolicyService:
         return unit.replace("OZONE", "Ozone") if False else unit
 
     @staticmethod
-    def _compute_change_pct(before_mean, after_mean):
-        if before_mean is None or pd.isna(before_mean) or before_mean == 0:
-            return None
+    def _baseline_threshold(pollutant):
+        key = pollutant.strip().upper() if pollutant else ""
+        return MIN_POLLUTANT_BASELINES.get(key, 0.0)
+
+    @staticmethod
+    def _compute_change_pct(before_mean, after_mean, pollutant=None):
+        if before_mean is None or pd.isna(before_mean):
+            return None, "missing_before_mean"
         if after_mean is None or pd.isna(after_mean):
-            return None
-        return ((after_mean - before_mean) / before_mean) * 100.0
+            return None, "missing_after_mean"
+        threshold = PolicyService._baseline_threshold(pollutant or "")
+        if threshold and before_mean < threshold:
+            return None, "baseline_too_low"
+        if before_mean == 0:
+            return None, "zero_before_mean"
+        return ((after_mean - before_mean) / before_mean) * 100.0, None
 
     @staticmethod
     def classify_effectiveness(results):
@@ -247,16 +266,16 @@ class PolicyService:
                 continue
             valid.append(float(value))
         if not valid:
-            return "Low Impact"
+            return "Low Observed Improvement"
         reduced = sum(1 for value in valid if value < 0)
         ratio = (reduced / len(valid)) * 100.0
         if ratio >= 70.0:
             return "Highly Effective"
         if ratio >= 40.0:
             return "Moderately Effective"
-        return "Low Impact"
+        return "Low Observed Improvement"
 
-    def analyze(self, district, policy_name, window_months=1):
+    def analyze(self, district, policy_name, window_months=1, comparison_mode="immediate"):
         district = self._normalize_city_name(district)
         if not district:
             raise ValueError("District is required")
@@ -290,17 +309,33 @@ class PolicyService:
         if city_df.empty:
             raise ValueError(f"No valid dates found for '{district}'")
 
+        comparison_mode = str(comparison_mode or "immediate").strip().lower()
         if policy_start:
             bounds = self._window_bounds(policy_start, months)
             before_start = bounds["before_start"]
             before_end = bounds["before_end"]
             after_start = bounds["after_start"]
             after_end = bounds["after_end"]
+            comparison_modes = {"immediate": True, "same-season-previous-year": False}
+            if comparison_mode == "same-season-previous-year":
+                previous_year_start = pd.to_datetime(policy_start) - pd.DateOffset(years=1)
+                previous_year_end = previous_year_start + (after_end - after_start)
+                previous_year_before = city_df[(city_df["Date"] >= previous_year_start) & (city_df["Date"] <= previous_year_end)]
+                if not previous_year_before.empty:
+                    before_start = previous_year_start
+                    before_end = previous_year_end
+                    comparison_modes["same-season-previous-year"] = True
+                else:
+                    comparison_mode = "immediate"
+                    comparison_modes["same-season-previous-year"] = False
+            else:
+                comparison_modes["same-season-previous-year"] = bool(city_df[(city_df["Date"] >= (pd.to_datetime(policy_start) - pd.DateOffset(years=1) + pd.DateOffset(days=0))) & (city_df["Date"] <= (pd.to_datetime(policy_start) - pd.DateOffset(days=1)) - pd.DateOffset(years=0))].empty is False)
         else:
             before_start = city_df["Date"].min()
             before_end = city_df["Date"].max()
             after_start = city_df["Date"].min()
             after_end = city_df["Date"].max()
+            comparison_modes = {"immediate": True, "same-season-previous-year": False}
 
         before_df = city_df[(city_df["Date"] >= before_start) & (city_df["Date"] <= before_end)] if policy_start else city_df
         after_df = city_df[(city_df["Date"] >= after_start) & (city_df["Date"] <= after_end)] if policy_start else city_df
@@ -323,7 +358,7 @@ class PolicyService:
                 continue
             before = float(before_vals.mean())
             after = float(after_vals.mean())
-            change_pct = self._compute_change_pct(before, after)
+            change_pct, change_reason = self._compute_change_pct(before, after, pollutant)
             rows.append({
                 "pollutant": pollutant,
                 "before": round(before, 2),
@@ -334,6 +369,9 @@ class PolicyService:
                 "after_valid_days": int(len(after_vals)),
                 "unit": self._pollutant_unit(pollutant),
                 "change_pct": None if change_pct is None else round(change_pct, 1),
+                "baseline_too_low": change_reason == "baseline_too_low",
+                "missing_before_mean": change_reason == "missing_before_mean",
+                "missing_after_mean": change_reason == "missing_after_mean",
                 "impact": "No Impact",
                 "policy_start_date": policy_start,
             })
@@ -345,13 +383,11 @@ class PolicyService:
         if valid_rows:
             reduced_count = sum(1 for r in valid_rows if r["change_pct"] < 0)
             improved_pct = (reduced_count / len(valid_rows)) * 100.0
-            status = "Highly Effective" if improved_pct >= 70.0 else "Moderately Effective" if improved_pct >= 40.0 else "Low Impact"
-            improved_label = "reduced"
+            status = "Highly Effective" if improved_pct >= 70.0 else "Moderately Effective" if improved_pct >= 40.0 else "Low Observed Improvement"
         else:
             improved_pct = 0.0
             reduced_count = 0
-            status = "Low Impact"
-            improved_label = "reduced"
+            status = "Low Observed Improvement"
 
         for row in rows:
             if row["change_pct"] is None:
@@ -365,7 +401,7 @@ class PolicyService:
 
         avg_before = sum(r["before"] for r in rows) / len(rows)
         avg_after = sum(r["after"] for r in rows) / len(rows)
-        overall_change_pct = self._compute_change_pct(avg_before, avg_after)
+        overall_change_pct, _ = self._compute_change_pct(avg_before, avg_after)
         if overall_change_pct is None:
             overall_change_pct = 0.0
 
@@ -384,6 +420,8 @@ class PolicyService:
             "policy": policy_name,
             "implementation_date": policy_start,
             "window_months": months,
+            "comparison_mode": comparison_mode,
+            "comparison_modes_available": comparison_modes,
             "periods": {
                 "before_start": before_start.strftime("%Y-%m-%d"),
                 "before_end": before_end.strftime("%Y-%m-%d"),
@@ -401,6 +439,7 @@ class PolicyService:
             "reduced_pollutant_count": reduced_count,
             "total_valid_pollutants": len(valid_rows),
             "reduction_percent": round(improved_pct, 1),
+            "baseline_footnote": "Percent change is not shown when a pollutant's before-window mean is below its minimum meaningful baseline; those pollutants are excluded from the improved count.",
         }
         return result
 

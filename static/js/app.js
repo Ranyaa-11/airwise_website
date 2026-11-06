@@ -741,12 +741,13 @@ async function analyzeSelectedPolicy() {
   const city = $("#policyCitySelect").value;
   const policy = $("#policyPolicySelect").value;
   const windowMonths = Number($("#policyWindowSelect").value || 3);
+  const comparisonMode = $("#policyComparisonSelect") ? $("#policyComparisonSelect").value : "immediate";
   const pollutants = $("#policyPollutants");
   const summary = $("#policySummary");
   const rec = $("#policyRecommendation");
   const summaryCity = $("#summaryCity");
   const summaryPolicy = $("#summaryPolicy");
-  const summaryPollutants = $("#summaryPollutants");
+  const summaryDate = $("#summaryDate");
   const summaryImpact = $("#summaryImpact");
   const insights = $("#policyInsights");
 
@@ -756,7 +757,7 @@ async function analyzeSelectedPolicy() {
     rec.textContent = "";
     if (summaryCity) summaryCity.textContent = "-";
     if (summaryPolicy) summaryPolicy.textContent = "-";
-    if (summaryPollutants) summaryPollutants.textContent = "-";
+    if (summaryDate) summaryDate.textContent = "-";
     if (summaryImpact) summaryImpact.textContent = "-";
     if (insights) insights.innerHTML = "";
     return;
@@ -766,27 +767,47 @@ async function analyzeSelectedPolicy() {
     const d = await api("/api/policy/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ city, policy, window_months: windowMonths })
+      body: JSON.stringify({ city, policy, window_months: windowMonths, comparison_mode: comparisonMode })
     });
+
+    const comparisonSelect = $("#policyComparisonSelect");
+    const comparisonMessage = $("#comparisonModeMessage");
+    if (comparisonSelect && comparisonMessage) {
+      const sameYearAvailable = d && d.comparison_modes_available && d.comparison_modes_available["same-season-previous-year"];
+      const option = Array.from(comparisonSelect.options).find(opt => opt.value === "same-season-previous-year");
+      if (option) {
+        option.disabled = !sameYearAvailable;
+      }
+      comparisonSelect.disabled = false;
+      if (!sameYearAvailable) {
+        comparisonMessage.textContent = "Same-season comparison is unavailable because the previous-year window is missing.";
+        comparisonMessage.style.color = "#b91c1c";
+        if (comparisonSelect.value === "same-season-previous-year") comparisonSelect.value = "immediate";
+      } else {
+        comparisonMessage.textContent = "Same-season comparison is available when matching prior-year data exists.";
+        comparisonMessage.style.color = "#475569";
+      }
+    }
 
     summaryCity.textContent = esc(d.city || city);
     summaryPolicy.textContent = esc(d.policy || policy);
-    summaryPollutants.textContent = d.affected_pollutants.length ? d.affected_pollutants.join(", ") : "-";
-    summaryImpact.textContent = esc(d.status || "-" );
+    summaryDate.textContent = esc(d.implementation_date || "-");
+    summaryImpact.textContent = esc(d.status || "-");
 
-    pollutants.innerHTML = d.affected_pollutants.map(p => `<span class="tag" style="margin-right:6px;">${esc(p)}</span>`).join("") || "No pollutants mapped.";
+    pollutants.innerHTML = (d.affected_pollutants || []).map(p => `<span class="tag" style="margin-right:6px;">${esc(p)}</span>`).join("") || "No pollutants mapped.";
 
     const tableBody = document.getElementById("policyResultsBody");
     if (tableBody) {
       tableBody.innerHTML = (d.results || []).map(row => {
-        const pct = row.change_pct === null || row.change_pct === undefined || Number.isNaN(Number(row.change_pct)) ? "--" : `${Number(row.change_pct).toFixed(1)}%`;
-        const pctClass = row.change_pct === null || row.change_pct === undefined || Number.isNaN(Number(row.change_pct)) ? "trend-flat" : Number(row.change_pct) < 0 ? "trend-down" : Number(row.change_pct) > 0 ? "trend-up" : "trend-flat";
+        const pctValue = row.change_pct === null || row.change_pct === undefined || Number.isNaN(Number(row.change_pct)) ? null : Number(row.change_pct);
+        const pctText = pctValue === null ? "n/a (baseline too low)" : `${pctValue.toFixed(1)}%`;
+        const pctClass = pctValue === null ? "trend-flat" : pctValue < 0 ? "trend-down" : pctValue > 0 ? "trend-up" : "trend-flat";
         return `
           <tr>
             <td>${esc(row.pollutant || "-")}</td>
             <td>${Number(row.before_mean ?? row.before ?? 0).toFixed(2)}</td>
             <td>${Number(row.after_mean ?? row.after ?? 0).toFixed(2)}</td>
-            <td class="${pctClass}">${esc(pct)}</td>
+            <td class="${pctClass}">${esc(pctText)}</td>
             <td>${esc(row.unit || "µg/m³")}</td>
             <td>${esc(Number(row.before_valid_days ?? 0))}</td>
             <td>${esc(Number(row.after_valid_days ?? 0))}</td>
@@ -803,7 +824,7 @@ async function analyzeSelectedPolicy() {
 
     summary.innerHTML = `
       <p class="summary-line">${esc(d.policy)} was analyzed using a ${esc(d.window_months)}-month before-and-after window. Before measurements: ${esc(d.periods.before_start)} to ${esc(d.periods.before_end)}; after measurements: ${esc(d.periods.after_start)} to ${esc(d.periods.after_end)}.</p>
-      <p class="summary-line">Improved ${esc(improvedCount)} out of ${esc(validCount || d.results.length)} affected pollutants (${esc(reductionPct.toFixed(1))}%).</p>
+      <p class="summary-line">Improved ${esc(improvedCount)} out of ${esc(validCount || (d.results || []).length)} affected pollutants (${esc(reductionPct.toFixed(1))}%).</p>
       <p class="summary-line">Overall impact: <strong>${esc(d.status)}</strong></p>
     `;
 
@@ -816,6 +837,10 @@ async function analyzeSelectedPolicy() {
     insights.innerHTML = insightItems.join("");
 
     rec.textContent = d.recommendation || "";
+    const baselineFootnote = document.getElementById("policyBaselineFootnote");
+    if (baselineFootnote) {
+      baselineFootnote.textContent = d.baseline_footnote || "Percent change is not shown when a pollutant's before-window mean is below its minimum meaningful baseline; those pollutants are excluded from the improved count.";
+    }
 
     const unitLabel = mixedUnits ? "Mean concentration (units vary by pollutant)" : `Mean concentration (${(d.results[0]?.unit) || "µg/m³"})`;
     draw("policyChart", {
@@ -823,15 +848,15 @@ async function analyzeSelectedPolicy() {
       data: {
         labels: (d.results || []).map(r => r.pollutant),
         datasets: [
-          { label: "Before policy", data: (d.results || []).map(r => r.before_mean ?? r.before ?? null), backgroundColor: "rgba(125, 211, 252, 0.9)", borderColor: "#7dd3fc", borderWidth: 1 },
-          { label: "After policy", data: (d.results || []).map(r => r.after_mean ?? r.after ?? null), backgroundColor: "rgba(250, 146, 168, 0.84)", borderColor: "#fda4af", borderWidth: 1 }
+          { label: "Before policy", data: (d.results || []).map(r => r.before_mean ?? r.before ?? null), backgroundColor: "rgba(56, 189, 248, 0.9)", borderColor: "#38BDF8", borderWidth: 1 },
+          { label: "After policy", data: (d.results || []).map(r => r.after_mean ?? r.after ?? null), backgroundColor: "rgba(14, 165, 233, 0.9)", borderColor: "#0EA5E9", borderWidth: 1 }
         ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-          legend: { labels: { color: "#dfeaf4" } },
+          legend: { labels: { color: "#374151" } },
           tooltip: {
             enabled: true,
             callbacks: {
@@ -845,15 +870,15 @@ async function analyzeSelectedPolicy() {
         },
         scales: {
           x: {
-            ticks: { color: "#dfeaf4" },
+            ticks: { color: "#334155" },
             grid: { color: "rgba(148,163,184,.12)" },
-            title: { display: true, text: "Pollutant", color: "#dfeaf4" }
+            title: { display: true, text: "Pollutant", color: "#334155" }
           },
           y: {
             beginAtZero: true,
-            ticks: { color: "#dfeaf4" },
+            ticks: { color: "#334155" },
             grid: { color: "rgba(148,163,184,.12)" },
-            title: { display: true, text: unitLabel, color: "#dfeaf4" }
+            title: { display: true, text: unitLabel, color: "#334155" }
           }
         }
       }
@@ -864,7 +889,7 @@ async function analyzeSelectedPolicy() {
     rec.textContent = "";
     if (summaryCity) summaryCity.textContent = "-";
     if (summaryPolicy) summaryPolicy.textContent = "-";
-    if (summaryPollutants) summaryPollutants.textContent = "-";
+    if (summaryDate) summaryDate.textContent = "-";
     if (summaryImpact) summaryImpact.textContent = "-";
     if (insights) insights.innerHTML = "";
   }
@@ -873,12 +898,26 @@ function initPolicy() {
   const city = $("#policyCitySelect");
   const policy = $("#policyPolicySelect");
   const windowSelect = $("#policyWindowSelect");
+  const comparisonSelect = $("#policyComparisonSelect");
+  const comparisonMessage = $("#comparisonModeMessage");
 
   if (city) {
     loadPolicyCityOptions().then(() => {
       if (city.value) loadPolicyOptions();
     });
     city.addEventListener("change", () => loadPolicyOptions());
+  }
+
+  if (comparisonSelect) {
+    const sameSeasonOption = Array.from(comparisonSelect.options).find(opt => opt.value === "same-season-previous-year");
+    if (sameSeasonOption) sameSeasonOption.disabled = false;
+    if (comparisonMessage) {
+      comparisonMessage.textContent = "Same-season comparison is available when matching prior-year data exists.";
+      comparisonMessage.style.color = "#475569";
+    }
+    comparisonSelect.addEventListener("change", () => {
+      if (policy && policy.value) analyzeSelectedPolicy();
+    });
   }
 
   const analyzeBtn = $("#policyAnalyzeBtn");

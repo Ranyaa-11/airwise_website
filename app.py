@@ -313,10 +313,11 @@ def api_policy_analyze():
     district = body.get("district") or body.get("city")
     policy = body.get("policy")
     months = body.get("window_months") if body.get("window_months") is not None else body.get("window")
+    comparison_mode = body.get("comparison_mode") or "immediate"
     if not district or not policy:
         return err("district and policy are required", 400)
     try:
-        return jsonify(policy_service.analyze(district, policy, months or 1))
+        return jsonify(policy_service.analyze(district, policy, months or 1, comparison_mode=comparison_mode))
     except Exception as ex:
         return err(ex, 400)
 

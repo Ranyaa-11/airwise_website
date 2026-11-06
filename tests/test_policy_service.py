@@ -27,6 +27,11 @@ class PolicyEffectivenessTests(unittest.TestCase):
         self.assertEqual((bounds["after_end"] - bounds["after_start"]).days,
                          (bounds["before_end"] - bounds["before_start"]).days)
 
+    def test_baseline_too_low_excluded_from_effectiveness_ratio(self):
+        self.assertEqual(PolicyService._compute_change_pct(0.05, 0.02, "CO")[1], "baseline_too_low")
+        rows = [{"change_pct": -10.0}, {"change_pct": None}, {"change_pct": -20.0}]
+        self.assertEqual(PolicyService.classify_effectiveness(rows), "Highly Effective")
+
 
 if __name__ == "__main__":
     unittest.main()
