@@ -293,7 +293,7 @@ async function initHome() {
     const cities = await api("/api/cities");
     cityCount = cities.length;
     $("#districtCount").textContent = cityCount;
-    $("#coverageCount").innerHTML = `${cityCount} <small>districts</small>`;
+    $("#coverageCount").innerHTML = `${cityCount} <small>cities</small>`;
     coords = Object.fromEntries(cities.map(c => [c.name, [c.lat, c.lon]]));
     $("#homeCitySelect").addEventListener("change", event => loadHomeCity(event.target.value));
   } catch (e) {
