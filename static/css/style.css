@@ -227,9 +227,9 @@ body[data-page=home] .container{width:min(100% - 88px,1340px);max-width:1340px;p
 .text-link span{color:var(--cyan);font-size:15px;transition:transform .2s}
 .text-link:hover span,.recommend-link:hover span{transform:translate(2px,-2px)}
 .glass-panel{border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(234,247,255,.72));box-shadow:0 22px 60px rgba(17,82,125,.10),inset 0 1px rgba(255,255,255,.78);backdrop-filter:blur(14px)}
-.live-dashboard-grid{display:grid;grid-template-columns:.91fr 1.09fr;gap:17px}
+.live-dashboard-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:17px}
 .live-dashboard-grid>*,.map-dashboard>*,.forecast-grid>*,.audience-grid>*{min-width:0}
-.live-primary,.trend-panel,.forecast-main,.recommendation-panel{padding:23px}
+.live-primary,.forecast-main,.recommendation-panel{padding:23px}
 .panel-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
 .panel-heading h3{margin:0;color:#10314d;font-family:var(--display);font-size:18px;font-weight:700;letter-spacing:-.035em}
 .panel-kicker{margin-bottom:3px;color:#55758a;font-size:10px;font-weight:700}
@@ -396,7 +396,7 @@ body[data-page=home] .container{width:min(100% - 88px,1340px);max-width:1340px;p
   .hero-float-card{bottom:19%;left:-7%;transform:scale(.9)}
   .hero-float-card strong{font-size:16px}
   .node-top{right:0}.node-bottom{left:0}
-  .live-dashboard-grid,.forecast-grid{grid-template-columns:1fr 1fr}
+  .forecast-grid{grid-template-columns:1fr 1fr}
   .map-dashboard{grid-template-columns:minmax(0,1.1fr) minmax(260px,.9fr)}
   .district-rail{padding:18px 14px}
   .map-frame{padding:9px}
@@ -434,7 +434,7 @@ body[data-page=home] .container{width:min(100% - 88px,1340px);max-width:1340px;p
   .section-heading h2,.closing-cta h2{font-size:clamp(27px,7.5vw,35px)}
   .section-description{font-size:10px}
   .live-dashboard-grid,.forecast-grid,.map-dashboard{grid-template-columns:1fr}
-  .live-primary,.trend-panel,.forecast-main,.recommendation-panel{padding:17px}
+  .live-primary,.forecast-main,.recommendation-panel{padding:17px}
   .live-aqi-display{gap:15px}
   .aqi-ring{width:99px;height:99px}
   .aqi-ring strong{font-size:28px}
@@ -494,6 +494,7 @@ body[data-page=home] .container{width:min(100% - 88px,1340px);max-width:1340px;p
 .dashboard-page .controls{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap}
 .dashboard-page .controls .small{margin:0 0 12px}
 .dashboard-page .monitoring-hero{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.sensors-page .monitoring-hero{grid-template-columns:1fr}
 .dashboard-page .monitoring-hero .card{min-width:0}
 .dashboard-page .aqi-row{display:flex;align-items:center;gap:17px;margin:18px 0 4px}
 .dashboard-page .aqi-num{color:var(--text-primary);font-family:var(--display);font-size:clamp(44px,6vw,68px);font-weight:800;line-height:1}

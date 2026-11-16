@@ -23,9 +23,6 @@ MIN_POLLUTANT_BASELINES = {
     "CO": 0.1,
     "OZONE": 5.0,
 }
-COMPARISON_MODES = {"immediate": "Immediately before vs after", "same-season-previous-year": "Same season previous year"}
-
-
 class PolicyService:
     def __init__(self):
         self._cache = {}
@@ -275,7 +272,7 @@ class PolicyService:
             return "Moderately Effective"
         return "Low Observed Improvement"
 
-    def analyze(self, district, policy_name, window_months=1, comparison_mode="immediate"):
+    def analyze(self, district, policy_name, window_months=1):
         district = self._normalize_city_name(district)
         if not district:
             raise ValueError("District is required")
@@ -309,33 +306,17 @@ class PolicyService:
         if city_df.empty:
             raise ValueError(f"No valid dates found for '{district}'")
 
-        comparison_mode = str(comparison_mode or "immediate").strip().lower()
         if policy_start:
             bounds = self._window_bounds(policy_start, months)
             before_start = bounds["before_start"]
             before_end = bounds["before_end"]
             after_start = bounds["after_start"]
             after_end = bounds["after_end"]
-            comparison_modes = {"immediate": True, "same-season-previous-year": False}
-            if comparison_mode == "same-season-previous-year":
-                previous_year_start = pd.to_datetime(policy_start) - pd.DateOffset(years=1)
-                previous_year_end = previous_year_start + (after_end - after_start)
-                previous_year_before = city_df[(city_df["Date"] >= previous_year_start) & (city_df["Date"] <= previous_year_end)]
-                if not previous_year_before.empty:
-                    before_start = previous_year_start
-                    before_end = previous_year_end
-                    comparison_modes["same-season-previous-year"] = True
-                else:
-                    comparison_mode = "immediate"
-                    comparison_modes["same-season-previous-year"] = False
-            else:
-                comparison_modes["same-season-previous-year"] = bool(city_df[(city_df["Date"] >= (pd.to_datetime(policy_start) - pd.DateOffset(years=1) + pd.DateOffset(days=0))) & (city_df["Date"] <= (pd.to_datetime(policy_start) - pd.DateOffset(days=1)) - pd.DateOffset(years=0))].empty is False)
         else:
             before_start = city_df["Date"].min()
             before_end = city_df["Date"].max()
             after_start = city_df["Date"].min()
             after_end = city_df["Date"].max()
-            comparison_modes = {"immediate": True, "same-season-previous-year": False}
 
         before_df = city_df[(city_df["Date"] >= before_start) & (city_df["Date"] <= before_end)] if policy_start else city_df
         after_df = city_df[(city_df["Date"] >= after_start) & (city_df["Date"] <= after_end)] if policy_start else city_df
@@ -420,8 +401,6 @@ class PolicyService:
             "policy": policy_name,
             "implementation_date": policy_start,
             "window_months": months,
-            "comparison_mode": comparison_mode,
-            "comparison_modes_available": comparison_modes,
             "periods": {
                 "before_start": before_start.strftime("%Y-%m-%d"),
                 "before_end": before_end.strftime("%Y-%m-%d"),

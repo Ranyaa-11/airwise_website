@@ -117,7 +117,6 @@ async function initHome() {
     currentCity = city;
     const homeCitySelect = $("#homeCitySelect");
     const heroCityLabel = $("#heroCityLabel");
-    const trendCityLabel = $("#trendCityLabel");
     const homeAqi = $("#homeAqi");
     const heroAqi = $("#heroAqi");
     const heroMeter = $("#heroMeter");
@@ -130,7 +129,6 @@ async function initHome() {
 
     if (homeCitySelect) homeCitySelect.value = city;
     if (heroCityLabel) heroCityLabel.textContent = city;
-    if (trendCityLabel) trendCityLabel.textContent = city;
     if (homeAqi) homeAqi.textContent = "--";
     if (heroAqi) heroAqi.textContent = "--";
     if (heroMeter) {
@@ -158,12 +156,6 @@ async function initHome() {
       charts.homeForecastChart.destroy();
       delete charts.homeForecastChart;
     }
-    if (charts.homeTrendChart) {
-      charts.homeTrendChart.destroy();
-      delete charts.homeTrendChart;
-    }
-    $("#homeTrendTitle").textContent = "CPCBCCR AQI, last 48 hours";
-    $("#homeTrendNote").textContent = "Collecting data - 0 record(s) so far";
     try {
       const d = await api(`/api/realtime/${encodeURIComponent(city)}`);
       if (city !== currentCity) return;
@@ -214,33 +206,6 @@ async function initHome() {
       $("#homeLiveMeta").textContent = "Data unavailable, retry";
       const homeRecommendation = $("#homeRecommendation");
       if (homeRecommendation) homeRecommendation.textContent = "Current health guidance is unavailable because the district feed could not be reached.";
-    }
-
-    try {
-      const l = await api(`/api/live-log/${encodeURIComponent(city)}?hours=48`);
-      if (city !== currentCity) return;
-      const points = l.points || [];
-      draw("homeTrendChart", {
-        type: "line",
-        data: { labels: points.map(p => p.t), datasets: [{
-          label: "CPCBCCR AQI", data: points.map(p => p.aqi), borderColor: "#38bdf8", backgroundColor: "rgba(56,189,248,.1)",
-          fill: true, pointRadius: points.length > 40 ? 0 : 2, pointHitRadius: 10, borderWidth: 2, tension: .38
-        }] },
-        options: {
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { displayColors: false } },
-          scales: {
-            x: { grid: { display: false }, ticks: { maxTicksLimit: 6, maxRotation: 0 } },
-            y: { beginAtZero: true, grid: { color: "rgba(148,163,184,.1)" }, ticks: { maxTicksLimit: 5 } }
-          }
-        }
-      });
-      $("#homeTrendNote").textContent = points.length
-        ? `${points.length} API records stored by AIRWISE in the last 48 hours.`
-        : "Collecting data - 0 record(s) so far";
-      $("#homeTrendTitle").textContent = "CPCBCCR AQI, last 48 hours";
-    } catch (e) {
-      $("#homeTrendNote").textContent = e.message;
     }
 
     try {
@@ -741,7 +706,6 @@ async function analyzeSelectedPolicy() {
   const city = $("#policyCitySelect").value;
   const policy = $("#policyPolicySelect").value;
   const windowMonths = Number($("#policyWindowSelect").value || 3);
-  const comparisonMode = $("#policyComparisonSelect") ? $("#policyComparisonSelect").value : "immediate";
   const pollutants = $("#policyPollutants");
   const summary = $("#policySummary");
   const rec = $("#policyRecommendation");
@@ -767,27 +731,8 @@ async function analyzeSelectedPolicy() {
     const d = await api("/api/policy/analyze", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ city, policy, window_months: windowMonths, comparison_mode: comparisonMode })
+      body: JSON.stringify({ city, policy, window_months: windowMonths })
     });
-
-    const comparisonSelect = $("#policyComparisonSelect");
-    const comparisonMessage = $("#comparisonModeMessage");
-    if (comparisonSelect && comparisonMessage) {
-      const sameYearAvailable = d && d.comparison_modes_available && d.comparison_modes_available["same-season-previous-year"];
-      const option = Array.from(comparisonSelect.options).find(opt => opt.value === "same-season-previous-year");
-      if (option) {
-        option.disabled = !sameYearAvailable;
-      }
-      comparisonSelect.disabled = false;
-      if (!sameYearAvailable) {
-        comparisonMessage.textContent = "Same-season comparison is unavailable because the previous-year window is missing.";
-        comparisonMessage.style.color = "#b91c1c";
-        if (comparisonSelect.value === "same-season-previous-year") comparisonSelect.value = "immediate";
-      } else {
-        comparisonMessage.textContent = "Same-season comparison is available when matching prior-year data exists.";
-        comparisonMessage.style.color = "#475569";
-      }
-    }
 
     summaryCity.textContent = esc(d.city || city);
     summaryPolicy.textContent = esc(d.policy || policy);
@@ -898,26 +843,11 @@ function initPolicy() {
   const city = $("#policyCitySelect");
   const policy = $("#policyPolicySelect");
   const windowSelect = $("#policyWindowSelect");
-  const comparisonSelect = $("#policyComparisonSelect");
-  const comparisonMessage = $("#comparisonModeMessage");
-
   if (city) {
     loadPolicyCityOptions().then(() => {
       if (city.value) loadPolicyOptions();
     });
     city.addEventListener("change", () => loadPolicyOptions());
-  }
-
-  if (comparisonSelect) {
-    const sameSeasonOption = Array.from(comparisonSelect.options).find(opt => opt.value === "same-season-previous-year");
-    if (sameSeasonOption) sameSeasonOption.disabled = false;
-    if (comparisonMessage) {
-      comparisonMessage.textContent = "Same-season comparison is available when matching prior-year data exists.";
-      comparisonMessage.style.color = "#475569";
-    }
-    comparisonSelect.addEventListener("change", () => {
-      if (policy && policy.value) analyzeSelectedPolicy();
-    });
   }
 
   const analyzeBtn = $("#policyAnalyzeBtn");

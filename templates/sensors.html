@@ -30,18 +30,11 @@
       <p id="dominantText" class="small">AQI uses the same CPCB sub-index rules as Colab when at least three pollutants including PM2.5 or PM10 are present.</p>
       <p id="metaText" class="small muted"></p>
     </article>
-    <article class="card">
-      <span class="eyebrow">How sensors reach the website</span>
-      <h2>Do not send devices to Colab first</h2>
-      <p>Post JSON to <code>/api/sensors/reading</code> with header <code>X-API-Key</code>. The site stores every accepted reading. Colab should pull <code>/api/sensors/export</code> when you want the same table in a notebook.</p>
-      <pre class="code-block" id="sensorPayload">{"district":"Bengaluru","device_id":"node-1","PM2.5":41.2,"PM10":80,"NO2":22,"SO2":5,"CO":0.8,"OZONE":35}</pre>
-    </article>
   </div>
 
   <section class="card pollutant-section">
     <div class="row-between">
       <div><span class="eyebrow">Latest device values</span><h2>Sensor pollutant cards</h2></div>
-      <span class="tag">Stored by Flask</span>
     </div>
     <div id="pollutantGrid" class="pollutants"></div>
   </section>
